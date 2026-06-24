@@ -481,4 +481,70 @@ Encapsulate the status-update logic in its own service function
 so it can be tested independently.
 _________________________________________________________________________________________________________________________________
 
+Prompt 10:  GET /rest/reimbursements + GET /rest/reimbursements/:userId
 
+TASK: Implement the two reimbursement read endpoints.
+
+ENDPOINT 1: GET /rest/reimbursements
+Middleware: authenticate
+
+Behavior by role:
+
+- EMP → return all reimbursements where employee_id = req.user.userId
+         return all statuses (PENDING, APPROVED, REJECTED)
+
+- RM  → return reimbursements from their assigned EMPs
+         where status = 'PENDING'
+         AND no APPROVED/REJECTED record exists in reimbursement_approvals 
+         with approver_role = 'RM'
+         (i.e. RM has not acted on it yet)
+
+- APE → return reimbursements where:
+         - an APPROVED record exists in reimbursement_approvals 
+           with approver_role = 'RM'
+         - AND no record exists in reimbursement_approvals 
+           with approver_role = 'APE'
+         (i.e. RM approved, APE has not acted yet)
+
+- CFO → return reimbursements where status = 'APPROVED'
+         (both RM and APE have approved)
+
+Success response:
+{
+  "status": "success",
+  "data": {
+    "reimbursements": [
+      {
+        "reimbursementId": "...",
+        "title": "...",
+        "description": "...",
+        "amount": ...,
+        "status": "..."
+      }
+    ]
+  }
+}
+
+
+ENDPOINT 2: GET /rest/reimbursements/:userId
+Middleware: authenticate, authorizeRoles('RM', 'APE', 'CFO')
+
+Rules:
+- Fetch the target user by userId param
+- If user does not exist → 404
+- If target user is not an EMP → 403
+- Role-specific subordinate check:
+  - RM  → target EMP must be assigned to this RM in employee_manager_map
+           → else 403
+  - APE → target must be an EMP (no further restriction)
+  - CFO → target must be an EMP (no further restriction)
+- Return all reimbursements for that EMP regardless of status
+
+Success response: same shape as above
+
+Error response shape:
+{
+  "status": "error",
+  "message": "..."
+}
+__________________________________________________________________________________________________________________________________

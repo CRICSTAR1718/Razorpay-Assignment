@@ -49,5 +49,67 @@ async function actOnReimbursement(req, res) {
     }
 }
 
-module.exports = { createReimbursement, actOnReimbursement };
+async function getReimbursementsForLoggedInRole(req, res) {
+    try {
+        const role = req.user?.role;
+        const userId = req.user?.userId;
+
+        const reimbursements = await reimbursementsService.getReimbursementsForRole({
+            role,
+            userId,
+        });
+
+        return res.status(200).json({
+            status: 'success',
+            data: {
+                reimbursements: reimbursements.map((r) => ({
+                    reimbursementId: r.id,
+                    title: r.title,
+                    description: r.description,
+                    amount: Number(r.amount),
+                    status: r.status,
+                })),
+            },
+        });
+    } catch (err) {
+        const statusCode = err?.statusCode ?? 400;
+        return sendError(res, err?.message ?? 'Failed to fetch reimbursements', statusCode);
+    }
+}
+
+async function getReimbursementsForUser(req, res) {
+    try {
+        const targetUserId = req.params.userId;
+
+        const reimbursements = await reimbursementsService.getReimbursementsForTargetUser({
+            targetUserId,
+            requesterUserId: req.user.userId,
+            requesterRole: req.user.role,
+        });
+
+        return res.status(200).json({
+            status: 'success',
+            data: {
+                reimbursements: reimbursements.map((r) => ({
+                    reimbursementId: r.id,
+                    title: r.title,
+                    description: r.description,
+                    amount: Number(r.amount),
+                    status: r.status,
+                })),
+            },
+        });
+    } catch (err) {
+        const statusCode = err?.statusCode ?? 400;
+        return sendError(res, err?.message ?? 'Failed to fetch user reimbursements', statusCode);
+    }
+}
+
+module.exports = {
+    createReimbursement,
+    actOnReimbursement,
+    getReimbursementsForLoggedInRole,
+    getReimbursementsForUser,
+};
+
 

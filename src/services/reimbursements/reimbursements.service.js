@@ -270,6 +270,168 @@ async function actOnReimbursement({ reimbursementId, action, approverUserId, app
     });
 }
 
-module.exports = { createReimbursement, actOnReimbursement };
+async function getReimbursementsForEmp(client, employeeId) {
+    const res = await client.query(
+        `SELECT id, title, description, amount, status
+         FROM reimbursements
+         WHERE employee_id = $1
+         ORDER BY created_at DESC`,
+        [employeeId]
+    );
+    return res.rows;
+}
+
+async function getReimbursementsForRm(client, managerId) {
+    // Pending only, where RM has not acted yet
+    // RM acts on reimbursements whose employee is assigned to manager, and where no RM approval/rejection exists.
+    const res = await client.query(
+        `SELECT r.id, r.title, r.description, r.amount, r.status
+         FROM reimbursements r
+         INNER JOIN employee_manager_map emm ON emm.employee_id = r.employee_id
+         WHERE emm.manager_id = $1
+           AND r.status = 'PENDING'
+           AND NOT EXISTS (
+             SELECT 1
+             FROM reimbursement_approvals ra
+             WHERE ra.reimbursement_id = r.id
+               AND ra.approver_role = 'RM'
+           )
+         ORDER BY r.created_at DESC`,
+        [managerId]
+    );
+
+    return res.rows;
+}
+
+async function getReimbursementsForApe(client) {
+    // PENDING reimbursements where RM has approved and APE has not acted yet
+    const res = await client.query(
+        `SELECT r.id, r.title, r.description, r.amount, r.status
+         FROM reimbursements r
+         WHERE r.status = 'PENDING'
+           AND EXISTS (
+             SELECT 1
+             FROM reimbursement_approvals ra
+             WHERE ra.reimbursement_id = r.id
+               AND ra.action = 'APPROVED'
+               AND ra.approver_role = 'RM'
+           )
+           AND NOT EXISTS (
+             SELECT 1
+             FROM reimbursement_approvals ra2
+             WHERE ra2.reimbursement_id = r.id
+               AND ra2.approver_role = 'APE'
+           )
+         ORDER BY r.created_at DESC`
+    );
+    return res.rows;
+}
+
+async function getReimbursementsForCfo(client) {
+    const res = await client.query(
+        `SELECT id, title, description, amount, status
+         FROM reimbursements
+         WHERE status = 'APPROVED'
+         ORDER BY created_at DESC`
+    );
+    return res.rows;
+}
+
+async function getReimbursementsForRole({ role, userId }) {
+    if (!role) {
+        const err = new Error('Forbidden');
+        err.statusCode = 403;
+        throw err;
+    }
+
+    return await withDb(async (client) => {
+        if (role === 'EMP') {
+            return await getReimbursementsForEmp(client, userId);
+        }
+        if (role === 'RM') {
+            return await getReimbursementsForRm(client, userId);
+        }
+        if (role === 'APE') {
+            return await getReimbursementsForApe(client);
+        }
+        if (role === 'CFO') {
+            return await getReimbursementsForCfo(client);
+        }
+
+        const err = new Error('Forbidden');
+        err.statusCode = 403;
+        throw err;
+    });
+}
+
+async function getTargetUserById(client, targetUserId) {
+    const res = await client.query('SELECT id, role FROM users WHERE id = $1', [targetUserId]);
+    return res.rows[0] ?? null;
+}
+
+async function isEmpAssignedToRm(client, managerId, empId) {
+    const res = await client.query(
+        `SELECT 1
+         FROM employee_manager_map
+         WHERE manager_id = $1 AND employee_id = $2
+         LIMIT 1`,
+        [managerId, empId]
+    );
+    return res.rows.length > 0;
+}
+
+async function getReimbursementsForEmpId(client, empId) {
+    const res = await client.query(
+        `SELECT id, title, description, amount, status
+         FROM reimbursements
+         WHERE employee_id = $1
+         ORDER BY created_at DESC`,
+        [empId]
+    );
+    return res.rows;
+}
+
+async function getReimbursementsForTargetUser({ targetUserId, requesterUserId, requesterRole }) {
+    if (!targetUserId) {
+        const err = new Error('target user not found');
+        err.statusCode = 404;
+        throw err;
+    }
+
+    return await withDb(async (client) => {
+        const targetUser = await getTargetUserById(client, targetUserId);
+        if (!targetUser) {
+            const err = new Error('User not found');
+            err.statusCode = 404;
+            throw err;
+        }
+
+        if (targetUser.role !== 'EMP') {
+            const err = new Error('Forbidden');
+            err.statusCode = 403;
+            throw err;
+        }
+
+        if (requesterRole === 'RM') {
+            const assigned = await isEmpAssignedToRm(client, requesterUserId, targetUserId);
+            if (!assigned) {
+                const err = new Error('Forbidden');
+                err.statusCode = 403;
+                throw err;
+            }
+        }
+
+        // APE and CFO: no further subordinate restrictions per spec
+        return await getReimbursementsForEmpId(client, targetUserId);
+    });
+}
+
+module.exports = {
+    createReimbursement,
+    actOnReimbursement,
+    getReimbursementsForRole,
+    getReimbursementsForTargetUser,
+};
+
 
 

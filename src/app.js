@@ -11,12 +11,15 @@ const rolesRoutes = require('./routes/roles.routes');
 const employeesRoutes = require('./routes/employees.routes');
 const reimbursementsRoutes = require('./routes/reimbursements.routes');
 const reimbursementsApprovalsRoutes = require('./routes/reimbursements.approvals.routes');
+const reimbursementsReadRoutes = require('./routes/reimbursements.read.routes');
 
 app.use('/rest/onboardings', onboardingsRoutes);
 app.use('/rest/roles', rolesRoutes);
 app.use('/rest/employees', employeesRoutes);
 app.use('/rest/reimbursements', reimbursementsRoutes);
 app.use('/rest/reimbursements', reimbursementsApprovalsRoutes);
+app.use('/rest/reimbursements', reimbursementsReadRoutes);
+
 
 
 module.exports = app;
