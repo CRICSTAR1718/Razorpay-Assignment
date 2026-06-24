@@ -1,5 +1,3 @@
-
-
 const bcrypt = require('bcrypt');
 const { Client } = require('pg');
 

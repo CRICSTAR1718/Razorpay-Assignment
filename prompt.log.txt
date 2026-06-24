@@ -149,3 +149,68 @@ Rules:
 
 Do not implement any endpoints or middleware yet.
 Only implement the seed script and wire it to the db:seed-data npm script.
+__________________________________________________________________________________________________________________________________
+
+Prompt 3: Authentication 
+
+TASK: Implement the three authentication endpoints.
+
+All endpoints are under the /rest/onboardings prefix.
+Authentication is cookie-based — login sets an httpOnly cookie,
+logout clears it.
+
+Endpoints to implement:
+
+1. POST /rest/onboardings/register
+   Request body: { name, email, password }
+   Rules:
+   - Only allow emails ending in @org.com — reject others with 400
+   - Hash password with bcrypt (salt rounds 10) before storing
+   - Every new user gets role EMP by default
+   - If email already exists, return 409 Conflict
+   Success response:
+   {
+     "status": "success",
+     "data": {
+       "userId": "...",
+       "name": "...",
+       "email": "...",
+       "role": "EMP"
+     }
+   }
+
+2. POST /rest/onboardings/login
+   Request body: { email, password }
+   Rules:
+   - Only allow emails ending in @org.com — reject others with 400
+   - Compare password with bcrypt
+   - On success, sign a JWT containing { userId, email, role }
+   - Set the JWT as an httpOnly cookie named "auth_token"
+   - Cookie must be httpOnly, sameSite: 'lax'
+   - On wrong credentials, return 401
+   Success response:
+   {
+     "status": "success",
+     "data": {
+       "userId": "...",
+       "name": "...",
+       "email": "...",
+       "role": "..."
+     }
+   }
+
+3. POST /rest/onboardings/logout
+   - No request body
+   - Clear the auth_token cookie
+   - Return 200 success
+
+Error response shape for all endpoints:
+{
+  "status": "error",
+  "message": "..."
+}
+
+Do not implement any middleware or other endpoints yet.
+Only implement these three routes + controller + service functions.
+
+_________________________________________________________________________________________________________________________________
