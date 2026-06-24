@@ -269,3 +269,62 @@ Only deliver the middleware file.
 
 _________________________________________________________________________________________________________________________________
 
+Prompt 06: Role-Assignment 
+
+TASK: Implement role assignment and employee-manager assignment endpoints.
+Apply authenticate and authorizeRoles middleware to all three endpoints.
+All three are CFO-only.
+
+Endpoints to implement:
+
+1. POST /rest/roles/assign
+   Middleware: authenticate, authorizeRoles('CFO')
+   Request body: { userId, role }
+   Rules:
+   - role must be one of: EMP, RM, APE, CFO
+   - If userId does not exist → 404
+   - If role is invalid → 400
+   - Update the user's role in the users table
+   Success response:
+   {
+     "status": "success",
+     "data": {
+       "userId": "...",
+       "role": "..."
+     }
+   }
+
+2. POST /rest/employees/assign
+   Middleware: authenticate, authorizeRoles('CFO')
+   Request body: { empId, rmId }
+   Rules:
+   - Verify empId exists and has role EMP → else 400
+   - Verify rmId exists and has role RM → else 400
+   - If empId is already assigned to a manager → return 409 Conflict
+   - Insert into employee_manager_map
+   Success response:
+   {
+     "status": "success",
+     "message": "Employee assigned to manager successfully"
+   }
+
+3. DELETE /rest/employees/assign
+   Middleware: authenticate, authorizeRoles('CFO')
+   Request body: { empId, rmId }
+   Rules:
+   - Verify the mapping between empId and rmId exists → else 404
+   - Delete the row from employee_manager_map
+   Success response:
+   {
+     "status": "success",
+     "message": "Assignment removed successfully"
+   }
+
+Error response shape:
+{
+  "status": "error",
+  "message": "..."
+}
+
+Follow the same controller → service → db pattern established earlier.
+Do not implement any other endpoints.
