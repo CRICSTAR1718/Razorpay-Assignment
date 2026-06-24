@@ -548,3 +548,55 @@ Error response shape:
   "message": "..."
 }
 __________________________________________________________________________________________________________________________________
+
+Prompt 11: 
+TASK: Review all endpoints and add edge case handling.
+Do not change any existing logic — only add missing validations and
+error handling on top of what is already implemented.
+
+Go through each endpoint and ensure:
+
+AUTH
+- Register with missing name/email/password → 400
+- Register with non @org.com email → 400
+- Login with wrong password → 401
+- Login with non-existent email → 401
+- Accessing protected route without cookie → 401
+- Accessing protected route with expired/invalid token → 401
+
+ROLE ASSIGNMENT
+- Assign invalid role string → 400
+- Assign role to non-existent userId → 404
+- Non-CFO trying to assign role → 403
+
+EMPLOYEE ASSIGNMENT
+- Assign non-EMP user as employee → 400
+- Assign non-RM user as manager → 400
+- Assign EMP who is already assigned → 409
+- Delete assignment that does not exist → 404
+- Pass non-existent empId or rmId → 404
+
+REIMBURSEMENTS
+- EMP raises reimbursement without being assigned to RM → 400
+- amount is 0 or negative → 400
+- title is missing or empty → 400
+- RM tries to approve reimbursement not belonging to their EMP → 403
+- APE tries to approve before RM has approved → 400
+- Same user approves the same reimbursement twice → 400
+- Act on already APPROVED reimbursement → 400
+- Act on already REJECTED reimbursement → 400
+- reimbursementId does not exist → 404
+- GET /rest/reimbursements/:userId where userId is not an EMP → 403
+- RM tries GET /rest/reimbursements/:userId for EMP not under them → 403
+- Non-existent userId in GET /rest/reimbursements/:userId → 404
+
+GENERAL
+- Any request with malformed JSON body → 400
+- Any unknown route → 404 { status: "error", message: "Route not found" }
+
+For every error, use this consistent response shape:
+{
+  "status": "error",
+  "message": "human readable message"
+}
+__________________________________________________________________________________________________________________________________

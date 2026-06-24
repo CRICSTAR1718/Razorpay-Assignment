@@ -37,6 +37,7 @@ async function assignRole({ userId, role }) {
     }
 
     return await withDb(async (client) => {
+
         const userRes = await client.query('SELECT id FROM users WHERE id = $1', [userId]);
 
         if (userRes.rows.length === 0) {
