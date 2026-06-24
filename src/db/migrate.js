@@ -41,7 +41,7 @@ async function runMigrations() {
         .sort();
 
     const client = new Client({
-        host: getEnv('PGHOST', 'localhost'),
+        host: getEnv('PGHOST', '127.0.0.1'),
         port: Number(getEnv('PGPORT', 5432)),
         database: getEnv('PGDATABASE', 'reimbursements'),
         user: getEnv('PGUSER', 'postgres'),

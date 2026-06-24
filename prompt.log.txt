@@ -1,4 +1,4 @@
-Prompt 1: Design Schema 
+Prompt 01: Design Schema 
 
 I am building a backend for a reimbursements management tool using Node.js, 
 Express.js, and PostgreSQL. We will build this incrementally — do only what 
@@ -124,3 +124,28 @@ IMPORTANT
 - Do not write any route, controller, or service logic
 - Do not implement any endpoint
 - Only deliver the project scaffold and migration files
+
+__________________________________________________________________________________________________________________________________
+
+Prompt 02: Seed CFO Root User
+
+TASK: Implement the db:seed-data script.
+
+This script must insert the CFO root user into the users table.
+It must be idempotent — running it multiple times must not crash 
+or create duplicate entries.
+
+Seed exactly this user:
+- name: "CFO"
+- email: cfo@org.com
+- password: CFO#ORG@April2026 (hash this with bcrypt before inserting)
+- role: CFO
+
+Rules:
+- Use INSERT ... ON CONFLICT (email) DO NOTHING
+- Use bcrypt with salt rounds 10
+- This is the only user that should ever be seeded
+- Do not seed any other user
+
+Do not implement any endpoints or middleware yet.
+Only implement the seed script and wire it to the db:seed-data npm script.
