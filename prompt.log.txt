@@ -368,3 +368,117 @@ Rules:
 
 Do not implement any other endpoints.
 _________________________________________________________________________________________________________________________________
+
+Prompt 08: Immplement POST /rest/reimbursements
+
+TASK: Implement reimbursement creation endpoint.
+
+POST /rest/reimbursements
+Middleware: authenticate, authorizeRoles('EMP')
+
+Request body: { title, description, amount }
+
+Rules:
+- Only EMP can create a reimbursement
+- Validate: title is required, amount must be a positive number
+- The logged-in user's id (req.user.userId) is the employee_id
+- Verify the EMP has a manager assigned in employee_manager_map
+  → if not assigned to any RM, return 400 with message:
+    "You must be assigned to a Reporting Manager before raising a reimbursement"
+- Insert into reimbursements with status PENDING
+- Do NOT insert anything into reimbursement_approvals yet
+
+Success response:
+{
+  "status": "success",
+  "data": {
+    "reimbursementId": "...",
+    "title": "...",
+    "description": "...",
+    "amount": ...,
+    "status": "PENDING"
+  }
+}
+
+Error response shape:
+{
+  "status": "error",
+  "message": "..."
+}
+
+Do not implement any other endpoints.
+__________________________________________________________________________________________________________________________________
+
+Prompt 09:  PATCH /rest/reimbursements (Approval Logic)
+
+TASK: Implement the reimbursement approval/rejection endpoint.
+This is the most critical business logic in the entire system.
+
+PATCH /rest/reimbursements
+Middleware: authenticate, authorizeRoles('RM', 'APE', 'CFO')
+
+Request body: { reimbursementId, action }
+action must be one of: APPROVED, REJECTED
+
+APPROVAL FLOW RULES:
+
+1. Fetch the reimbursement by reimbursementId
+   - If not found → 404
+   - If already REJECTED → 400, cannot act on a rejected reimbursement
+   - If already APPROVED → 400, cannot act on an approved reimbursement
+
+2. Role-specific access rules:
+   - RM: can only act on reimbursements raised by their own assigned EMPs
+     (check employee_manager_map where manager_id = req.user.userId)
+     → if reimbursement does not belong to their EMP → 403
+   - APE: can only act on reimbursements that have already been 
+     approved by the RM (check reimbursement_approvals for an 
+     APPROVED action with approver_role = 'RM')
+     → if RM has not approved yet → 400
+   - CFO: can act on any reimbursement at any stage
+
+3. Duplicate approval check:
+   - Check reimbursement_approvals for an existing record with
+     reimbursement_id = this reimbursement AND approver_id = req.user.userId
+   - If already exists → 400, "You have already acted on this reimbursement"
+
+4. Insert into reimbursement_approvals:
+   {
+     reimbursement_id,
+     approver_id: req.user.userId,
+     approver_role: req.user.role,
+     action: action (APPROVED or REJECTED)
+   }
+
+5. After inserting, determine new reimbursement status:
+   - If action is REJECTED:
+     → immediately update reimbursements.status = 'REJECTED'
+   - If action is APPROVED:
+     → check reimbursement_approvals for this reimbursement:
+        - Has at least one APPROVED from approver_role = 'RM'? 
+        - Has at least one APPROVED from approver_role = 'APE'?
+        - If BOTH conditions are true → update status = 'APPROVED'
+        - Otherwise → leave status as 'PENDING'
+   - Always update reimbursements.updated_at = NOW()
+
+Success response:
+{
+  "status": "success",
+  "data": {
+    "reimbursementId": "...",
+    "status": "..." (current status after this action)
+  }
+}
+
+Error response shape:
+{
+  "status": "error",
+  "message": "..."
+}
+
+Do not implement any other endpoints.
+Encapsulate the status-update logic in its own service function
+so it can be tested independently.
+_________________________________________________________________________________________________________________________________
+
+
