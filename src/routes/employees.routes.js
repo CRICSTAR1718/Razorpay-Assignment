@@ -21,5 +21,12 @@ router.delete(
     employeesController.removeEmployeeManagerAssignment
 );
 
+router.get(
+    '/',
+    authenticate,
+    authorizeRoles('RM', 'APE', 'CFO'),
+    employeesController.getEmployeesByRoleVisibility
+);
+
 module.exports = router;
 

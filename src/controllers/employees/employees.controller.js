@@ -36,8 +36,32 @@ async function removeEmployeeManagerAssignment(req, res) {
     }
 }
 
+async function getEmployeesByRoleVisibility(req, res) {
+    try {
+        const { role, userId } = req.user || {};
+
+        const users = await employeesService.getUsersByRoleVisibility({ role, userId });
+
+        return res.status(200).json({
+            status: 'success',
+            data: {
+                users: users.map((u) => ({
+                    userId: u.id,
+                    name: u.name,
+                    email: u.email,
+                    role: u.role,
+                })),
+            },
+        });
+    } catch (err) {
+        const statusCode = err?.statusCode ?? 400;
+        return sendError(res, err?.message ?? 'Failed to fetch employees', statusCode);
+    }
+}
+
 module.exports = {
     assignEmployeeToManager,
     removeEmployeeManagerAssignment,
+    getEmployeesByRoleVisibility,
 };
 

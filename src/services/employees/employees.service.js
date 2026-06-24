@@ -21,14 +21,6 @@ async function withDb(fn) {
     }
 }
 
-async function getUserByIdAndRole(client, id, expectedRole) {
-    const res = await client.query('SELECT id, role FROM users WHERE id = $1', [id]);
-    if (res.rows.length === 0) return null;
-    const user = res.rows[0];
-    if (user.role !== expectedRole) return { ...user, _roleMismatch: true };
-    return user;
-}
-
 async function assignEmployeeToManager({ empId, rmId }) {
     if (!empId || !rmId) {
         const err = new Error('empId and rmId are required');
@@ -54,10 +46,7 @@ async function assignEmployeeToManager({ empId, rmId }) {
         }
 
         // Check if emp already assigned (employee_id UNIQUE)
-        const existing = await client.query(
-            'SELECT employee_id FROM employee_manager_map WHERE employee_id = $1',
-            [empId]
-        );
+        const existing = await client.query('SELECT employee_id FROM employee_manager_map WHERE employee_id = $1', [empId]);
 
         if (existing.rows.length > 0) {
             const err = new Error('Employee already assigned to a manager');
@@ -65,10 +54,7 @@ async function assignEmployeeToManager({ empId, rmId }) {
             throw err;
         }
 
-        await client.query(
-            'INSERT INTO employee_manager_map (employee_id, manager_id) VALUES ($1, $2)',
-            [empId, rmId]
-        );
+        await client.query('INSERT INTO employee_manager_map (employee_id, manager_id) VALUES ($1, $2)', [empId, rmId]);
     });
 }
 
@@ -92,15 +78,63 @@ async function removeEmployeeManagerAssignment({ empId, rmId }) {
             throw err;
         }
 
-        await client.query(
-            'DELETE FROM employee_manager_map WHERE employee_id = $1 AND manager_id = $2',
-            [empId, rmId]
-        );
+        await client.query('DELETE FROM employee_manager_map WHERE employee_id = $1 AND manager_id = $2', [empId, rmId]);
+    });
+}
+
+// Isolated role-specific queries
+async function getUsersForRm(client, managerId) {
+    const res = await client.query(
+        `SELECT u.id, u.name, u.email, u.role
+         FROM users u
+         INNER JOIN employee_manager_map emm ON emm.employee_id = u.id
+         WHERE emm.manager_id = $1 AND u.role = 'EMP'`,
+        [managerId]
+    );
+    return res.rows;
+}
+
+async function getUsersForApe(client) {
+    const res = await client.query(
+        `SELECT id, name, email, role
+         FROM users
+         WHERE role IN ('EMP', 'RM')`
+    );
+    return res.rows;
+}
+
+async function getUsersForCfo(client) {
+    const res = await client.query(`SELECT id, name, email, role FROM users`);
+    return res.rows;
+}
+
+async function getUsersByRoleVisibility({ role, userId }) {
+    if (!role) {
+        const err = new Error('role missing');
+        err.statusCode = 400;
+        throw err;
+    }
+
+    return await withDb(async (client) => {
+        if (role === 'RM') {
+            return await getUsersForRm(client, userId);
+        }
+        if (role === 'APE') {
+            return await getUsersForApe(client);
+        }
+        if (role === 'CFO') {
+            return await getUsersForCfo(client);
+        }
+
+        const err = new Error('Forbidden');
+        err.statusCode = 403;
+        throw err;
     });
 }
 
 module.exports = {
     assignEmployeeToManager,
     removeEmployeeManagerAssignment,
+    getUsersByRoleVisibility,
 };
 

@@ -328,3 +328,43 @@ Error response shape:
 
 Follow the same controller → service → db pattern established earlier.
 Do not implement any other endpoints.
+_________________________________________________________________________________________________________________________________
+
+Prompt 07: API GET /rest/employees
+
+TASK: Implement GET /rest/employees with role-gated visibility.
+
+Middleware: authenticate, authorizeRoles('RM', 'APE', 'CFO')
+(EMP is not allowed — return 403 via authorizeRoles)
+
+Behavior by role:
+
+- RM  → return only EMPs who are assigned to this RM
+         (query employee_manager_map where manager_id = req.user.userId)
+
+- APE → return all users with role EMP or RM
+
+- CFO → return all users regardless of role
+
+Success response:
+{
+  "status": "success",
+  "data": {
+    "users": [
+      {
+        "userId": "...",
+        "name": "...",
+        "email": "...",
+        "role": "..."
+      }
+    ]
+  }
+}
+
+Rules:
+- Never return the password field in any response
+- If RM has no assigned EMPs, return empty array — not an error
+- Each role's query must be isolated in its own service function
+
+Do not implement any other endpoints.
+_________________________________________________________________________________________________________________________________
