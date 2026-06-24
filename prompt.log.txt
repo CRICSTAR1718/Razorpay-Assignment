@@ -1,0 +1,126 @@
+Prompt 1: Design Schema 
+
+I am building a backend for a reimbursements management tool using Node.js, 
+Express.js, and PostgreSQL. We will build this incrementally — do only what 
+I ask in each prompt, nothing more.
+
+TASK
+Set up the project and create the database migrations for all required tables.
+
+PROJECT SETUP REQUIREMENTS
+- Framework: Express.js (JavaScript only, no TypeScript)
+- Database: PostgreSQL (use pg package, plain SQL migration files)
+- App must run strictly on port 7002
+- Follow SOLID principles and separation of concerns
+- Maintain this folder structure:
+
+src/
+  ├── routes/
+  ├── controllers/
+  ├── services/
+  ├── middleware/
+  ├── db/
+  ├── app.js
+  └── server.js
+
+Root level:
+  package.json
+  .env
+  migrations/
+
+package.json must expose exactly these scripts:
+  "dev"          → starts the server (use nodemon)
+  "db:migrate"   → runs all migration files in order
+  "db:seed-data" → placeholder for now, we will implement this next
+
+Do NOT implement any API endpoints yet.
+Only deliver: project structure + package setup + migration files.
+
+DATABASE SCHEMA
+
+1. users
+Stores all system users across all roles.
+
+Columns:
+- id         → UUID, PRIMARY KEY, DEFAULT gen_random_uuid()
+- name       → VARCHAR(255), NOT NULL
+- email      → VARCHAR(255), NOT NULL, UNIQUE
+- password   → VARCHAR(255), NOT NULL (will be hashed later, just the column for now)
+- role       → VARCHAR(10), NOT NULL, DEFAULT 'EMP'
+               CHECK (role IN ('EMP', 'RM', 'APE', 'CFO'))
+- created_at → TIMESTAMP, DEFAULT NOW()
+
+Indexes: email
+
+2. employee_manager_map
+Tracks which EMP reports to which RM.
+One EMP reports to exactly one RM. One RM can have many EMPs.
+
+Columns:
+- id          → UUID, PRIMARY KEY, DEFAULT gen_random_uuid()
+- employee_id → UUID, NOT NULL, REFERENCES users(id) ON DELETE CASCADE, UNIQUE
+- manager_id  → UUID, NOT NULL, REFERENCES users(id) ON DELETE CASCADE
+- assigned_at → TIMESTAMP, DEFAULT NOW()
+
+Constraints:
+- UNIQUE on employee_id (one EMP can only have one RM at a time)
+
+Indexes: employee_id, manager_id
+
+3. reimbursements
+Stores reimbursement requests raised by employees.
+
+Columns:
+- id          → UUID, PRIMARY KEY, DEFAULT gen_random_uuid()
+- employee_id → UUID, NOT NULL, REFERENCES users(id) ON DELETE CASCADE
+- title       → VARCHAR(255), NOT NULL
+- description → TEXT
+- amount      → DECIMAL(12,2), NOT NULL, CHECK (amount > 0)
+- status      → VARCHAR(20), NOT NULL, DEFAULT 'PENDING'
+               CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED'))
+- created_at  → TIMESTAMP, DEFAULT NOW()
+- updated_at  → TIMESTAMP, DEFAULT NOW()
+
+Rules:
+- Every new reimbursement starts as PENDING
+- Status is updated by the service layer when approval conditions are met
+- Do NOT add any boolean approval flag columns — approvals are tracked 
+  exclusively in the reimbursement_approvals table
+
+Indexes: employee_id, status
+
+4. reimbursement_approvals
+Audit log of every approval or rejection action taken on a reimbursement.
+This is the single source of truth for who approved what and when.
+
+Columns:
+- id                → UUID, PRIMARY KEY, DEFAULT gen_random_uuid()
+- reimbursement_id  → UUID, NOT NULL, REFERENCES reimbursements(id) ON DELETE CASCADE
+- approver_id       → UUID, NOT NULL, REFERENCES users(id)
+- approver_role     → VARCHAR(10), NOT NULL
+                      CHECK (approver_role IN ('RM', 'APE', 'CFO'))
+- action            → VARCHAR(20), NOT NULL
+                      CHECK (action IN ('APPROVED', 'REJECTED'))
+- remarks           → TEXT
+- acted_at          → TIMESTAMP, DEFAULT NOW()
+
+Purpose:
+- Track individual approval decisions per role
+- Derive final reimbursement status from this table in the service layer
+- Maintain a full audit trail for FinTech compliance
+
+Indexes: reimbursement_id, approver_id
+
+MIGRATION REQUIREMENTS
+- Create one SQL file per table, numbered for order:
+    001_create_users.sql
+    002_create_employee_manager_map.sql
+    003_create_reimbursements.sql
+    004_create_reimbursement_approvals.sql
+- Migration runner script must execute them in order
+- Tables must be created in dependency-safe order (users first)
+
+IMPORTANT
+- Do not write any route, controller, or service logic
+- Do not implement any endpoint
+- Only deliver the project scaffold and migration files
