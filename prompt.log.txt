@@ -214,3 +214,29 @@ Do not implement any middleware or other endpoints yet.
 Only implement these three routes + controller + service functions.
 
 _________________________________________________________________________________________________________________________________
+
+Prompt 4: Authentication middleware
+
+TASK: Implement the authentication middleware.
+
+Create a middleware function: authenticate
+Location: src/middleware/authenticate.js
+
+Behavior:
+- Read the auth_token cookie from the request
+- If cookie is missing → return 401 { status: "error", message: "Unauthorized" }
+- Verify the JWT using the same secret used in login
+- If token is invalid or expired → return 401
+- If valid, attach the decoded payload to req.user:
+  req.user = { userId, email, role }
+- Call next() to proceed
+
+This middleware must be importable and composable — it will be 
+used on every protected route going forward.
+
+Do not apply it to any routes yet.
+Do not implement any other logic.
+Only deliver the middleware file.
+
+__________________________________________________________________________________________________________________________________
+
