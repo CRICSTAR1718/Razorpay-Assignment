@@ -240,3 +240,32 @@ Only deliver the middleware file.
 
 __________________________________________________________________________________________________________________________________
 
+Prompt 5: Role-based Access Control Implementation
+
+TASK: Implement the role-based authorization middleware.
+
+Create a middleware factory function: authorizeRoles
+Location: src/middleware/authorizeRoles.js
+
+Behavior:
+- Takes a list of allowed roles as arguments:
+  authorizeRoles('CFO') or authorizeRoles('RM', 'APE', 'CFO')
+- Returns an Express middleware function
+- Reads req.user.role (set by authenticate middleware)
+- If the user's role is not in the allowed list:
+  return 403 { status: "error", message: "Forbidden" }
+- If allowed, call next()
+
+Usage pattern on routes will be:
+router.post('/some-route', authenticate, authorizeRoles('CFO'), controller)
+
+Important:
+- 401 means not logged in (handled by authenticate)
+- 403 means logged in but not permitted (handled by authorizeRoles)
+- Never confuse these two
+
+Do not apply this to any routes yet.
+Only deliver the middleware file.
+
+_________________________________________________________________________________________________________________________________
+
