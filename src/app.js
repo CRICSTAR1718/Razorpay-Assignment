@@ -35,7 +35,16 @@ app.use(notFoundHandler);
 // Global error handler (keeps consistent error shape)
 app.use(globalErrorHandler);
 
+// Fallback 500 handler for any unhandled errors
+app.use((err, req, res, next) => {
+    // eslint-disable-line no-unused-vars
+    console.error(err);
+    if (res.headersSent) return next(err);
+    return res.status(500).json({ status: 'error', message: 'Internal server error' });
+});
+
 module.exports = app;
+
 
 
 

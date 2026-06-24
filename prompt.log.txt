@@ -600,3 +600,33 @@ For every error, use this consistent response shape:
   "message": "human readable message"
 }
 __________________________________________________________________________________________________________________________________
+
+Prompt 12: Final Review
+
+TASK: Final cleanup.
+
+1. Add a global error handler in app.js:
+   - Catches any unhandled errors
+   - Logs the error to console
+   - Returns 500 { status: "error", message: "Internal server error" }
+
+2. Add a 404 handler for unknown routes:
+   - Returns 404 { status: "error", message: "Route not found" }
+
+3. Verify these scripts work end to end:
+   - npm run db:migrate   → creates all 4 tables cleanly
+   - npm run db:seed-data → inserts CFO user, idempotent
+   - npm run dev          → starts server on port 7002
+
+4. Verify the full flow manually:
+   - Register a new user (gets EMP role)
+   - CFO logs in, assigns role RM to a user
+   - CFO assigns EMP to RM
+   - EMP raises a reimbursement
+   - RM approves it
+   - APE approves it
+   - EMP checks their reimbursements — status shows APPROVED
+   - CFO checks reimbursements — sees the approved one
+
+5. Do not add any new features.
+   Only cleanup, error handling, and verification.
