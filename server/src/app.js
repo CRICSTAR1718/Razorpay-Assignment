@@ -1,5 +1,7 @@
 const express = require('express');
 const cookieParser = require('cookie-parser');
+const corsMiddleware = require('./middleware/cors');
+
 
 const {
     jsonParseErrorHandler,
@@ -11,6 +13,9 @@ const app = express();
 
 app.use(express.json());
 app.use(cookieParser());
+app.use(corsMiddleware);
+
+
 
 const onboardingsRoutes = require('./routes/onboardings.routes');
 const rolesRoutes = require('./routes/roles.routes');

@@ -1,4 +1,8 @@
-const API_BASE = 'http://localhost:7002' || 'https://razorpay-assignment.onrender.com/';
+// Set to your deployed backend origin.
+// If you later serve the frontend from the same origin, you can change this to ''
+// and request paths will be same-origin.
+const API_BASE = window.__API_BASE || 'https://razorpay-assignment.onrender.com';
+
 
 const els = {
     authCard: document.getElementById('authCard'),
