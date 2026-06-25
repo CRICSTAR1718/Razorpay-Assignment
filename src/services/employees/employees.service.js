@@ -1,25 +1,14 @@
-const { Client } = require('pg');
-
-function getEnv(name, fallback) {
-    return process.env[name] ?? fallback;
-}
+const pool = require('../../db/pool');
 
 async function withDb(fn) {
-    const client = new Client({
-        host: getEnv('PGHOST', '127.0.0.1'),
-        port: Number(getEnv('PGPORT', 5432)),
-        database: getEnv('PGDATABASE', 'reimbursements'),
-        user: getEnv('PGUSER', 'postgres'),
-        password: getEnv('PGPASSWORD', ''),
-    });
-
-    await client.connect();
+    const client = await pool.connect();
     try {
         return await fn(client);
     } finally {
-        await client.end();
+        client.release();
     }
 }
+
 
 async function assignEmployeeToManager({ empId, rmId }) {
     if (!empId || !rmId) {
