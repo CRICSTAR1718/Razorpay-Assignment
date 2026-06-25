@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:7002 || https://razorpay-assignment.onrender.com/';
+const API_BASE = 'http://localhost:7002' || 'https://razorpay-assignment.onrender.com/';
 
 const els = {
     authCard: document.getElementById('authCard'),
