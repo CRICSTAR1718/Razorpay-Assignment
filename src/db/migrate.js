@@ -1,21 +1,16 @@
-
-
+require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const { Client } = require('pg');
 
-function getEnv(name, fallback) {
-    return process.env[name] ?? fallback;
-}
-
 async function ensureMigrationsTable(client) {
     await client.query(`
-    CREATE TABLE IF NOT EXISTS schema_migrations (
-      id SERIAL PRIMARY KEY,
-      filename VARCHAR(255) UNIQUE NOT NULL,
-      applied_at TIMESTAMP NOT NULL DEFAULT NOW()
-    );
-  `);
+        CREATE TABLE IF NOT EXISTS schema_migrations (
+            id SERIAL PRIMARY KEY,
+            filename VARCHAR(255) UNIQUE NOT NULL,
+            applied_at TIMESTAMP NOT NULL DEFAULT NOW()
+        );
+    `);
 }
 
 async function hasMigrationApplied(client, filename) {
@@ -41,18 +36,20 @@ async function runMigrations() {
         .sort();
 
     const client = new Client({
-        host: getEnv('PGHOST', '127.0.0.1'),
-        port: Number(getEnv('PGPORT', 5432)),
-        database: getEnv('PGDATABASE', 'reimbursements'),
-        user: getEnv('PGUSER', 'postgres'),
-        password: getEnv('PGPASSWORD', ''),
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false }  // required for Supabase
     });
 
     await client.connect();
+    console.log('Connected to database...');
+
     await ensureMigrationsTable(client);
 
     for (const filename of files) {
-        if (await hasMigrationApplied(client, filename)) continue;
+        if (await hasMigrationApplied(client, filename)) {
+            console.log(`Skipping (already applied): ${filename}`);
+            continue;
+        }
 
         const filePath = path.join(migrationsDir, filename);
         const sql = fs.readFileSync(filePath, 'utf8');
@@ -64,17 +61,19 @@ async function runMigrations() {
             await client.query(sql);
             await recordMigrationApplied(client, filename);
             await client.query('COMMIT');
+            console.log(`Done: ${filename}`);
         } catch (err) {
             await client.query('ROLLBACK');
+            console.error(`Failed on: ${filename}`, err.message);
             throw err;
         }
     }
 
+    console.log('All migrations applied successfully.');
     await client.end();
 }
 
 runMigrations().catch((err) => {
-    console.error(err);
+    console.error('Migration failed:', err);
     process.exit(1);
 });
-
