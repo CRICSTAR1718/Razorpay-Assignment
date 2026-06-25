@@ -4,6 +4,8 @@
   "main": "src/server.js",
   "type": "commonjs",
   "scripts": {
+    "build": "echo \"Build not required: this project runs directly on Node/Express (src/server.js)\"",
+    "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "db:migrate": "node src/db/migrate.js",
     "db:seed-data": "node src/db/seed-data.js"
