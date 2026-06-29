@@ -23,6 +23,9 @@ const employeesRoutes = require('./routes/employees.routes');
 const reimbursementsRoutes = require('./routes/reimbursements.routes');
 const reimbursementsApprovalsRoutes = require('./routes/reimbursements.approvals.routes');
 const reimbursementsReadRoutes = require('./routes/reimbursements.read.routes');
+const healthRoutes = require('./routes/health.routes');
+
+app.use('/rest', healthRoutes);
 
 app.use('/rest/onboardings', onboardingsRoutes);
 app.use('/rest/roles', rolesRoutes);
@@ -30,6 +33,7 @@ app.use('/rest/employees', employeesRoutes);
 app.use('/rest/reimbursements', reimbursementsRoutes);
 app.use('/rest/reimbursements', reimbursementsApprovalsRoutes);
 app.use('/rest/reimbursements', reimbursementsReadRoutes);
+
 
 // JSON malformed handler (from express.json())
 app.use(jsonParseErrorHandler);
