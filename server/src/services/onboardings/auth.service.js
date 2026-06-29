@@ -1,5 +1,3 @@
-
-
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
@@ -90,10 +88,16 @@ async function login({ email, password }, res) {
             { expiresIn: '7d' }
         );
 
+        // Render/API is behind HTTPS. For cross-site cookies we must set `secure: true`.
+        // (On localhost you can change this to false if needed.)
+        const isSecureCookie = process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging' || !!process.env.RENDER;
+
         res.cookie('auth_token', token, {
             httpOnly: true,
-            sameSite: 'lax',
-            // secure: true, // enable when deploying over HTTPS
+            // Cross-site cookie support for deployed frontend -> API.
+            // If frontend and API are on different origins, sameSite must be 'none' and cookie must be secure.
+            sameSite: 'none',
+            secure: isSecureCookie,
         });
 
         return {
@@ -106,9 +110,12 @@ async function login({ email, password }, res) {
 }
 
 async function logout(res) {
+    const isSecureCookie = process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging' || !!process.env.RENDER;
+
     res.clearCookie('auth_token', {
         httpOnly: true,
-        sameSite: 'lax',
+        sameSite: 'none',
+        secure: isSecureCookie,
     });
 }
 

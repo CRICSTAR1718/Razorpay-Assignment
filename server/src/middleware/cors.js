@@ -3,13 +3,16 @@
 // Allows cookies (credentials) and common headers used by fetch().
 
 function corsMiddleware(req, res, next) {
-    const allowedOrigin =
-        process.env.CORS_ORIGIN ||
-        'http://127.0.0.1:5500';
+    // With credentials (cookies), Access-Control-Allow-Origin MUST NOT be '*'.
+    // Echo back the request Origin only when it's our known frontend origin.
+    const requestOrigin = req.headers.origin;
+    const allowedOrigin = 'http://localhost:5173';
 
-    res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
-    res.setHeader('Vary', 'Origin');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    if (requestOrigin === allowedOrigin) {
+        res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+        res.setHeader('Vary', 'Origin');
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
 
     res.setHeader(
         'Access-Control-Allow-Headers',
@@ -30,4 +33,5 @@ function corsMiddleware(req, res, next) {
 }
 
 module.exports = corsMiddleware;
+
 
